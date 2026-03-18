@@ -1,26 +1,13 @@
-use async_graphql::{Object, SimpleObject};
+mod schema;
 
-pub struct Query;
+pub use schema::{Mutation, Query};
 
-#[Object]
-impl Query {
-    async fn health(&self) -> HealthStatus {
-        HealthStatus {
-            status: "ok".to_string(),
-        }
-    }
-}
+use async_graphql::EmptySubscription;
 
-pub struct Mutation;
+pub type AppSchema = async_graphql::Schema<Query, Mutation, EmptySubscription>;
 
-#[Object]
-impl Mutation {
-    async fn noop(&self) -> bool {
-        true
-    }
-}
-
-#[derive(SimpleObject)]
-struct HealthStatus {
-    status: String,
+pub fn schema() -> AppSchema {
+    async_graphql::Schema::build(Query, Mutation, EmptySubscription)
+        .extension(async_graphql::extensions::Tracing)
+        .finish()
 }
