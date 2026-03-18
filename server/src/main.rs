@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{extract::State, response::Html, routing::get, Router};
+use tower_http::services::{ServeDir, ServeFile};
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, SessionManagerLayer};
 use tracing::info;
 
@@ -43,6 +44,19 @@ async fn graphql_playground() -> Html<&'static str> {
     )
 }
 
+fn frontend_router() -> Option<Router> {
+    let dist_dir = std::path::Path::new("frontend/dist");
+    if !dist_dir.exists() {
+        info!("frontend/dist not found, skipping static file serving");
+        return None;
+    }
+
+    info!("Serving frontend from frontend/dist/");
+    let index_file = dist_dir.join("index.html");
+    let serve_dir = ServeDir::new(dist_dir).fallback(ServeFile::new(index_file));
+    Some(Router::new().fallback_service(serve_dir))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -74,7 +88,7 @@ async fn main() {
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .with_state(schema);
 
-    let app = if let Some(ref auth_config) = config.auth {
+    let mut app = if let Some(ref auth_config) = config.auth {
         let oauth_client =
             auth::build_oauth_client(auth_config).expect("Failed to build OAuth client");
         let auth_state = auth::AuthState {
@@ -94,6 +108,10 @@ async fn main() {
         info!("Auth disabled (GITHUB_CLIENT_ID not set)");
         Router::new().merge(graphql_router).layer(session_layer)
     };
+
+    if let Some(frontend) = frontend_router() {
+        app = app.merge(frontend);
+    }
 
     let addr = format!("{}:{}", config.server.host, config.server.port);
     info!("Starting server on {}", addr);

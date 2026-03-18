@@ -1,3 +1,5 @@
 /target
 /result
 /data
+frontend/node_modules/
+frontend/dist/
