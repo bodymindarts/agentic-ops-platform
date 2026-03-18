@@ -1,8 +1,13 @@
+use std::sync::Arc;
+
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{extract::State, response::Html, routing::get, Router};
+use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, SessionManagerLayer};
 use tracing::info;
 
+mod auth;
+mod error;
 mod graphql;
 
 use graphql::{Mutation, Query};
@@ -53,9 +58,42 @@ async fn main() {
         .extension(async_graphql::extensions::Tracing)
         .finish();
 
-    let app = Router::new()
+    let session_store = MemoryStore::default();
+    let session_ttl_hours = config
+        .auth
+        .as_ref()
+        .map(|a| a.session_ttl_hours)
+        .unwrap_or(24);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_expiry(Expiry::OnInactivity(Duration::hours(
+            session_ttl_hours as i64,
+        )));
+
+    let graphql_router = Router::new()
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .with_state(schema);
+
+    let app = if let Some(ref auth_config) = config.auth {
+        let oauth_client =
+            auth::build_oauth_client(auth_config).expect("Failed to build OAuth client");
+        let auth_state = auth::AuthState {
+            oauth_client,
+            config: Arc::new(auth_config.clone()),
+            http_client: reqwest::Client::new(),
+        };
+
+        let auth_router = auth::router().with_state(auth_state);
+        info!("Auth enabled for org={}", auth_config.required_org);
+
+        Router::new()
+            .merge(graphql_router)
+            .merge(auth_router)
+            .layer(session_layer)
+    } else {
+        info!("Auth disabled (GITHUB_CLIENT_ID not set)");
+        Router::new().merge(graphql_router).layer(session_layer)
+    };
 
     let addr = format!("{}:{}", config.server.host, config.server.port);
     info!("Starting server on {}", addr);
