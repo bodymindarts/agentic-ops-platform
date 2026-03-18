@@ -117,6 +117,10 @@
               }
               trap cleanup EXIT
 
+              # Set test OAuth credentials so auth routes are mounted
+              export GITHUB_CLIENT_ID="''${GITHUB_CLIENT_ID:-test-client-id}"
+              export GITHUB_CLIENT_SECRET="''${GITHUB_CLIENT_SECRET:-test-client-secret}"
+
               echo "Starting agentic-ops-server..."
               $SERVER_BIN &
               echo "$!" > .server.pid
