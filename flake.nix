@@ -80,6 +80,8 @@
           bats
           jq
           curl
+          nodejs_22
+          pnpm
         ]
         ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
           clang
