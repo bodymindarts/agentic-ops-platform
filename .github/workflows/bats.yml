@@ -1,0 +1,16 @@
+name: "BATS Tests"
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  bats-tests:
+    name: End to End BATS Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Run BATS tests
+        run: nix run .#bats

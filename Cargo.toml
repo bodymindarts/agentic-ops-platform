@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = ["core", "server"]
+
+[workspace.package]
+version = "0.0.0"
+
+[workspace.dependencies]
+# Internal dependencies
+agentic-ops-core = { path = "core" }
+
+# External dependencies
+async-graphql = { version = "8.0.0-rc.4", default-features = false, features = [
+  "tracing",
+  "tokio",
+] }
+async-graphql-axum = "8.0.0-rc.4"
+axum = { version = "0.8", features = ["macros"] }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = [
+  "rt-multi-thread",
+  "macros",
+  "signal",
+] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[workspace.metadata.crane]
+name = "agentic-ops-platform"

@@ -1,0 +1,18 @@
+[package]
+name = "server"
+version.workspace = true
+edition = "2021"
+
+[[bin]]
+name = "agentic-ops-server"
+path = "src/main.rs"
+
+[dependencies]
+agentic-ops-core = { workspace = true }
+async-graphql = { workspace = true }
+async-graphql-axum = { workspace = true }
+axum = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
