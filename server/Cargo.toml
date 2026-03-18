@@ -3,6 +3,10 @@ name = "server"
 version.workspace = true
 edition = "2021"
 
+[lib]
+name = "server"
+path = "src/lib.rs"
+
 [[bin]]
 name = "agentic-ops-server"
 path = "src/main.rs"
